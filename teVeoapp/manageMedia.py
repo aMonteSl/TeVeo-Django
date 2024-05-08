@@ -181,14 +181,24 @@ def download_xml_files(xml_file, file_path):
     elif xml_file == 'dgt.xml':
         url = URL_DGT
 
-    # Realizar una solicitud GET a la URL
-    response = requests.get(url)
-    # Escribir el contenido de la respuesta en un archivo
-    with open(file_path, 'wb') as f:
-        f.write(response.content)
+    try:
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/96.0.4664.110 Safari/537.36"
+            ),
+        }
 
-    # Imprimir un mensaje de éxito
-    print(f"Successfully downloaded {xml_file} from {url}")
+        response = requests.get(url, headers=headers)
+        # Escribir el contenido de la respuesta en un archivo
+        with open(file_path, 'wb') as f:
+            f.write(response.content)
+
+        # Imprimir un mensaje de éxito
+        print(f"Successfully downloaded {xml_file} from {url}")
+    except Exception as e:
+        print(f"Failed to download {xml_file} from {url}. Error: {str(e)}")
 
 
 def create_and_save_camera(sourc_id, id, src, name, coordinates):
@@ -251,18 +261,34 @@ def download_and_save_image(cam):
     try:
         print(f"Processing camera with id {cam.id}")
         print(f"URL for camera with id {cam.id}: {cam.src}")
-        response = urlopen(cam.src)
-        img = response.read()
-        img_path = os.path.join('img/data', f'{cam.source_id}{cam.id}.jpg')
-        full_img_path = os.path.join(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__))), 'teVeoapp/static', img_path)
-        with open(full_img_path, 'wb') as f:
-            f.write(img)
-        cam.img_path = img_path
-        cam.save()
-        print(
-            f"""Successfully saved image for
-            camera with id {cam.id} and path {img_path}""")
+
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/96.0.4664.110 Safari/537.36"
+            ),
+        }
+        response = requests.get(cam.src, headers=headers)
+
+        if response.status_code == 200:
+            img = response.content
+            img_path = os.path.join(
+                'img/data', f'{cam.source_id}{cam.id}.jpg')
+            full_img_path = os.path.join(os.path.dirname(os.path.dirname(
+                os.path.abspath(__file__))), 'teVeoapp/static', img_path)
+            with open(full_img_path, 'wb') as f:
+                f.write(img)
+            cam.img_path = img_path
+            cam.save()
+            print(
+                f"""Successfully saved image for
+                camera with id {cam.id} and path {img_path}""")
+
+        else:
+            print(
+                f"""Failed to process camera with id {cam.id}.
+                Error: {response.status_code}""")
     except Exception as e:
         print(f"Failed to process camera with id {cam.id}. Error: {str(e)}")
 
